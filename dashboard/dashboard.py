@@ -99,22 +99,6 @@ st.markdown(f"""
 - Analisis ini menggunakan teknik statistik sederhana (mean dan median) untuk memberikan gambaran umum pola polusi udara.
 """)
 
-# ======================== Analisis RFM Berdasarkan Data Kualitas Udara ========================
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import streamlit as st
-
-# ======================== Fungsi Memuat Dataset ========================
-def load_data():
-    df = pd.read_csv("main_data.csv")  # Sesuaikan dengan path dataset
-    numeric_columns = ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3', 'TEMP', 'PRES', 'DEWP', 'RAIN', 'WSPM']
-    df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
-    df = df.dropna()
-    df['datetime'] = pd.to_datetime(df[['year', 'month', 'day', 'hour']])
-    df['year_month'] = df['datetime'].dt.to_period('M').astype(str)
-    return df
 
 # ======================== Analisis RFM untuk Kualitas Udara ========================
 st.subheader("📊 Analisis RFM (Recency, Frequency, Monetary) untuk Kualitas Udara")
