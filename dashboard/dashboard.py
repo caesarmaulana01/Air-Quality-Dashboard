@@ -7,7 +7,7 @@ import plotly.express as px
 # Fungsi untuk memuat dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("/mount/src/air-quality-dashboard/dashboard/dashboard.py")  # Sesuaikan dengan path dataset
+    df = pd.read_csv("/mount/src/air-quality-dashboard/dashboard/main_data.csv")  # Sesuaikan dengan path dataset
 
     # Konversi kolom numerik
     numeric_columns = ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3', 'TEMP', 'PRES', 'DEWP', 'RAIN', 'WSPM']
