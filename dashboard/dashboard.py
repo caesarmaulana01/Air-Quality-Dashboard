@@ -1,3 +1,12 @@
+"""
+Dashboard Analisis Kualitas Udara
+
+Dibuat oleh: T. Muhammad Caesar Maulana
+
+Deskripsi:
+Dashboard ini menggunakan Streamlit untuk menganalisis tren dan distribusi data kualitas udara berdasarkan dataset yang tersedia.
+"""
+
 import streamlit as st
 import pandas as pd
 import seaborn as sns
@@ -6,7 +15,7 @@ import matplotlib.pyplot as plt
 # Fungsi untuk memuat dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("D:\LASKAR AI\PROJECT COURSE DATA WITH PYTHON\submission\dashboard\main_data.csv")  # Sesuaikan dengan path dataset
+    df = pd.read_csv("../dashboard/main_data.csv")  # Sesuaikan dengan path dataset
 
     # Konversi kolom numerik
     numeric_columns = ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3', 'TEMP', 'PRES', 'DEWP', 'RAIN', 'WSPM']
@@ -76,4 +85,4 @@ elif analysis_type == "Distribusi Data":
 if st.checkbox("📜 Tampilkan Data"):
     st.write(df.head())
 
-st.sidebar.write("🚀 Dibuat dengan Streamlit")
+st.sidebar.write("🚀 Dibuat dengan Streamlit oleh T. Muhammad Caesar Maulana")
