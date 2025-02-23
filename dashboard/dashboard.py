@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.express as px
+import numpy as np
 
 # Fungsi untuk memuat dataset
 @st.cache_data
@@ -99,6 +100,7 @@ st.markdown(f"""
 - Analisis ini menggunakan teknik statistik sederhana (mean dan median) untuk memberikan gambaran umum pola polusi udara.
 """)
 
+# ======================== Analisis RFM Berdasarkan Data Kualitas Udara ========================
 
 # ======================== Analisis RFM untuk Kualitas Udara ========================
 st.subheader("📊 Analisis RFM (Recency, Frequency, Monetary) untuk Kualitas Udara")
