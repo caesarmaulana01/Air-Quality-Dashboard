@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 # ======================== Fungsi Memuat Dataset ========================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("/mount/src/air-quality-dashboard/dashboard/dashboard.py")
+    df = pd.read_csv("/mount/src/air-quality-dashboard/dashboard/main_data.csv")
     numeric_columns = ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3']
     df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric, errors='coerce')
     df = df.dropna()
