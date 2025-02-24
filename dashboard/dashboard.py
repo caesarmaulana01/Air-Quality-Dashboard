@@ -100,78 +100,78 @@ st.markdown(f"""
 - Analisis ini menggunakan teknik statistik sederhana (mean dan median) untuk memberikan gambaran umum pola polusi udara.
 """)
 
-# ======================== Analisis RFM Berdasarkan Data Kualitas Udara ========================
-
-# ======================== Analisis RFM untuk Kualitas Udara ========================
-st.subheader("📊 Analisis RFM (Recency, Frequency, Monetary) untuk Kualitas Udara")
+# ======================== Dashboard Streamlit ========================
+st.subheader("🌫️ Analisis Kualitas Udara Berdasarkan AQI dengan Clustering dan Binning")
 df = load_data()
-st.write("Data Awal:", df.head())
 
-# ======================== Menghitung Recency ========================
-df_recency = df.groupby(by='station', as_index=False)['datetime'].max()
-df_recency.columns = ['Station', 'LastObservationDate']
-recent_date = df_recency['LastObservationDate'].max()
-df_recency['Recency'] = df_recency['LastObservationDate'].apply(lambda x: (recent_date - x).days)
+# ======================== Filter Tanggal dan Parameter ========================
+try:
+    start_date = st.date_input("Pilih Tanggal Mulai:", df['datetime'].min().date())
+    end_date = st.date_input("Pilih Tanggal Akhir:", df['datetime'].max().date())
+    
+    if start_date > end_date:
+        st.error("Tanggal mulai harus sebelum tanggal akhir!")
+    else:
+        df = df[(df['datetime'].dt.date >= start_date) & (df['datetime'].dt.date <= end_date)]
+except:
+    st.warning("Tanggal tidak valid. Menampilkan semua data.")
 
-# ======================== Menghitung Frequency ========================
-frequency_df = df.groupby(by='station', as_index=False)['datetime'].nunique()
-frequency_df.columns = ['Station', 'Frequency']
+pollutants = st.multiselect("Pilih Jenis Polutan:", ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3'], default=['PM2.5'])
+temp_range = st.slider("Rentang Temperatur (°C):", float(df['TEMP'].min()), float(df['TEMP'].max()), (float(df['TEMP'].min()), float(df['TEMP'].max())))
+wind_range = st.slider("Rentang Kecepatan Angin (m/s):", float(df['WSPM'].min()), float(df['WSPM'].max()), (float(df['WSPM'].min()), float(df['WSPM'].max())))
 
-# ======================== Menghitung Monetary ========================
-monetary_df = df.groupby(by='station', as_index=False)['PM2.5'].mean()
-monetary_df.columns = ['Station', 'Mean_PM2.5']
+df = df[(df['TEMP'] >= temp_range[0]) & (df['TEMP'] <= temp_range[1]) &
+        (df['WSPM'] >= wind_range[0]) & (df['WSPM'] <= wind_range[1])]
 
-# ======================== Menggabungkan Ketiga Kolom ========================
-rf_df = df_recency.merge(frequency_df, on='Station')
-rfm_df = rf_df.merge(monetary_df, on='Station').drop(columns='LastObservationDate')
-st.write("Data RFM:", rfm_df.head())
+# ======================== Manual Grouping Berdasarkan AQI ========================
+def classify_aqi(pm25):
+    if pm25 <= 50:
+        return "Excellent"
+    elif pm25 <= 100:
+        return "Good"
+    elif pm25 <= 150:
+        return "Lightly Polluted"
+    elif pm25 <= 200:
+        return "Moderately Polluted"
+    elif pm25 <= 300:
+        return "Heavily Polluted"
+    else:
+        return "Severely Polluted"
 
-# ======================== Peringkat dan Normalisasi ========================
-rfm_df['R_rank'] = rfm_df['Recency'].rank(ascending=False)
-rfm_df['F_rank'] = rfm_df['Frequency'].rank(ascending=True)
-rfm_df['M_rank'] = rfm_df['Mean_PM2.5'].rank(ascending=True)
+df['Air_Quality_Category'] = df['PM2.5'].apply(classify_aqi)
 
-rfm_df['R_rank_norm'] = (rfm_df['R_rank'] / rfm_df['R_rank'].max()) * 100
-rfm_df['F_rank_norm'] = (rfm_df['F_rank'] / rfm_df['F_rank'].max()) * 100
-rfm_df['M_rank_norm'] = (rfm_df['M_rank'] / rfm_df['M_rank'].max()) * 100
+# ======================== Clustering Berdasarkan Parameter ========================
+clustering_data = df[pollutants + ['TEMP', 'WSPM']]
+km = KMeans(n_clusters=5, random_state=42)
+df['Cluster'] = km.fit_predict(clustering_data)
 
-rfm_df.drop(columns=['R_rank', 'F_rank', 'M_rank'], inplace=True)
-
-# ======================== Menghitung Skor RFM ========================
-rfm_df['RFM_Score'] = 0.15 * rfm_df['R_rank_norm'] + 0.28 * rfm_df['F_rank_norm'] + 0.57 * rfm_df['M_rank_norm']
-rfm_df['RFM_Score'] *= 0.05
-rfm_df = rfm_df.round(2)
-
-# ======================== Segmentasi Berdasarkan Skor RFM ========================
-rfm_df["Air_Quality_Segment"] = np.where(rfm_df['RFM_Score'] > 4.5, "Excellent",
-                                  np.where(rfm_df['RFM_Score'] > 4, "Good",
-                                  np.where(rfm_df['RFM_Score'] > 3, "Moderate",
-                                  np.where(rfm_df['RFM_Score'] > 1.6, "Poor", "Very Poor"))))
-
-st.write("Segmen Kualitas Udara Berdasarkan RFM:", rfm_df[['Station', 'RFM_Score', 'Air_Quality_Segment']].head(20))
-
-# ======================== Visualisasi Segmen Kualitas Udara ========================
+# ======================== Visualisasi Distribusi Kualitas Udara ========================
+color_palette = ['#003f5c', '#58508d', '#bc5090', '#ff6361', '#ffa600']
 fig, ax = plt.subplots()
-plt.pie(rfm_df.Air_Quality_Segment.value_counts(),
-        labels=rfm_df.Air_Quality_Segment.value_counts().index,
-        autopct='%.0f%%', startangle=140)
-plt.title("Distribusi Segmen Kualitas Udara Berdasarkan Analisis RFM")
+plt.pie(df['Air_Quality_Category'].value_counts(),
+        labels=df['Air_Quality_Category'].value_counts().index,
+        autopct='%.0f%%', startangle=140,
+        colors=color_palette)
+plt.title("Distribusi Kategori Kualitas Udara")
 st.pyplot(fig)
 
+st.write("**Detail Kategori Kualitas Udara:**")
+st.dataframe(df[['datetime', 'station'] + pollutants + ['TEMP', 'WSPM', 'Air_Quality_Category', 'Cluster']].head())
+
 st.markdown("""
-**Penjelasan Analisis RFM untuk Kualitas Udara:**
-- **Recency (Keterkinian):** Mengukur berapa lama sejak pengamatan terakhir dilakukan di stasiun.
-- **Frequency (Frekuensi):** Mengukur seberapa sering stasiun mencatat data kualitas udara.
-- **Monetary (Nilai Moneter - Diadaptasi sebagai Rata-rata PM2.5):** Mengukur tingkat polusi rata-rata PM2.5 di setiap stasiun.
+**Kategori Kualitas Udara (Berdasarkan PM2.5):**
+- **Excellent (Sangat Baik):** PM2.5 ≤ 50
+- **Good (Baik):** 51 - 100
+- **Lightly Polluted (Tercemar Ringan):** 101 - 150
+- **Moderately Polluted (Tercemar Sedang):** 151 - 200
+- **Heavily Polluted (Tercemar Berat):** 201 - 300
+- **Severely Polluted (Sangat Tercemar):** > 300
 
-**Kategori Kualitas Udara:**
-- **Excellent:** Skor RFM > 4.5
-- **Good:** 4.5 > Skor RFM > 4
-- **Moderate:** 4 > Skor RFM > 3
-- **Poor:** 3 > Skor RFM > 1.6
-- **Very Poor:** Skor RFM < 1.6
+**Fitur Tambahan:**
+- Filter berdasarkan tanggal, polutan, temperatur, dan kecepatan angin.
+- Clustering berdasarkan parameter polutan, temperatur, dan angin.
+- Visualisasi kategori kualitas udara dengan kombinasi warna tertentu.
 """)
-
 
 # ======================== Tampilkan Data ========================
 if st.checkbox("📜 Tampilkan Data Awal"):
